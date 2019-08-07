@@ -2377,20 +2377,20 @@ may increase either contention or retry errors, or both.`,
 			Info: "return the bucket number to which operand would be assigned in a histogram having count " +
 				"equal-width buckets spanning the range b1 to b2.",
 		},
-		tree.Overload{
-			Types: tree.ArgTypes{{"operand", types.Int}, {"b1", types.Int},
-				{"b2", types.Int}, {"count", types.Int}},
-			ReturnType: tree.FixedReturnType(types.Int),
-			Fn: func(ctx *tree.EvalContext, args tree.Datums) (tree.Datum, error) {
-				operand := float64(tree.MustBeDInt(args[0]))
-				b1 := float64(tree.MustBeDInt(args[1]))
-				b2 := float64(tree.MustBeDInt(args[2]))
-				count := int(tree.MustBeDInt(args[3]))
-				return tree.NewDInt(tree.DInt(widthBucket(operand, b1, b2, count))), nil
-			},
-			Info: "return the bucket number to which operand would be assigned in a histogram having count " +
-				"equal-width buckets spanning the range b1 to b2.",
-		},
+		// tree.Overload{
+		// 	Types: tree.ArgTypes{{"operand", types.Int}, {"b1", types.Int},
+		// 		{"b2", types.Int}, {"count", types.Int}},
+		// 	ReturnType: tree.FixedReturnType(types.Int),
+		// 	Fn: func(ctx *tree.EvalContext, args tree.Datums) (tree.Datum, error) {
+		// 		operand := float64(tree.MustBeDInt(args[0]))
+		// 		b1 := float64(tree.MustBeDInt(args[1]))
+		// 		b2 := float64(tree.MustBeDInt(args[2]))
+		// 		count := int(tree.MustBeDInt(args[3]))
+		// 		return tree.NewDInt(tree.DInt(widthBucket(operand, b1, b2, count))), nil
+		// 	},
+		// 	Info: "return the bucket number to which operand would be assigned in a histogram having count " +
+		// 		"equal-width buckets spanning the range b1 to b2.",
+		// },
 		tree.Overload{
 			Types:      tree.ArgTypes{{"operand", types.Any}, {"thresholds", types.AnyArray}},
 			ReturnType: tree.FixedReturnType(types.Int),

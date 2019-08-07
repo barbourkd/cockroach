@@ -12,8 +12,10 @@ package tree
 
 import (
 	"bytes"
+	"context"
 	"fmt"
 	"math"
+	"strings"
 
 	"github.com/cockroachdb/cockroach/pkg/server/telemetry"
 	"github.com/cockroachdb/cockroach/pkg/sql/pgwire/pgcode"
@@ -392,6 +394,16 @@ type typeCheckOverloadState struct {
 func typeCheckOverloadedExprs(
 	ctx *SemaContext, desired *types.T, overloads []overloadImpl, inBinOp bool, exprs ...Expr,
 ) ([]TypedExpr, []overloadImpl, error) {
+	debug := false
+	if strings.Contains(fmt.Sprintf("%q", overloads), "bucket") {
+		debug = true
+		log.Infof(context.TODO(), "Got the bucket")
+	}
+
+	if debug {
+		log.Infof(context.TODO(), "expres len %d \n0: %s", len(exprs), exprs[0].String())
+	}
+
 	if len(overloads) > math.MaxUint8 {
 		return nil, nil, errors.AssertionFailedf("too many overloads (%d > 255)", len(overloads))
 	}
@@ -403,6 +415,9 @@ func typeCheckOverloadedExprs(
 	// Special-case the HomogeneousType overload. We determine its return type by checking that
 	// all parameters have the same type.
 	for i, overload := range overloads {
+		if debug {
+			log.Infof(context.TODO(), "Got homogenousType stuff")
+		}
 		// Only one overload can be provided if it has parameters with HomogeneousType.
 		if _, ok := overload.params().(HomogeneousType); ok {
 			if len(overloads) > 1 {
@@ -448,6 +463,10 @@ func typeCheckOverloadedExprs(
 			return o.params().MatchLen(len(exprs))
 		})
 
+	if debug {
+		log.Infof(context.TODO(), "now have %d overloads", len(s.overloadIdxs))
+	}
+
 	// Filter out overloads which constants cannot become.
 	for _, i := range s.constIdxs {
 		constExpr := exprs[i].(Constant)
@@ -457,6 +476,9 @@ func typeCheckOverloadedExprs(
 			})
 	}
 
+	if debug {
+		log.Infof(context.TODO(), "now have %d overloads", len(s.overloadIdxs))
+	}
 	// TODO(nvanbenschoten): We should add a filtering step here to filter
 	// out impossible candidates based on identical parameters. For instance,
 	// f(int, float) is not a possible candidate for the expression f($1, $1).
@@ -480,11 +502,18 @@ func typeCheckOverloadedExprs(
 			})
 	}
 
+	if debug {
+		log.Infof(context.TODO(), "now have %d overloads", len(s.overloadIdxs))
+	}
+
 	// At this point, all remaining overload candidates accept the argument list,
 	// so we begin checking for a single remaining candidate implementation to choose.
 	// In case there is more than one candidate remaining, the following code uses
 	// heuristics to find a most preferable candidate.
 	if ok, typedExprs, fns, err := checkReturn(ctx, &s); ok {
+		if debug {
+			log.Info(context.TODO(), "check return sucess")
+		}
 		return typedExprs, fns, err
 	}
 
@@ -516,7 +545,6 @@ func typeCheckOverloadedExprs(
 			}
 		}
 	}
-
 	if len(s.constIdxs) > 0 {
 		if ok, typedExprs, fns, err := filterAttempt(ctx, &s, func() {
 			// The second heuristic is to prefer candidates where all constants can
@@ -557,6 +585,12 @@ func typeCheckOverloadedExprs(
 				}
 			}
 		}); ok {
+			if debug {
+				log.Infof(context.TODO(), "Returning!")
+				log.Infof(context.TODO(), "typedExprs: %q", typedExprs)
+				log.Infof(context.TODO(), "fns: %q", fns)
+				log.Infof(context.TODO(), "err: %q", err)
+			}
 			return typedExprs, fns, err
 		}
 

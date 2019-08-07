@@ -11,6 +11,7 @@
 package tree
 
 import (
+	"context"
 	"fmt"
 	"strings"
 	"time"
@@ -25,6 +26,7 @@ import (
 	"github.com/cockroachdb/cockroach/pkg/util/duration"
 	"github.com/cockroachdb/cockroach/pkg/util/errorutil/unimplemented"
 	"github.com/cockroachdb/cockroach/pkg/util/hlc"
+	"github.com/cockroachdb/cockroach/pkg/util/log"
 	"github.com/cockroachdb/cockroach/pkg/util/timeutil"
 	"github.com/cockroachdb/errors"
 	"golang.org/x/text/language"
@@ -811,6 +813,9 @@ func CheckIsWindowOrAgg(def *FunctionDefinition) error {
 
 // TypeCheck implements the Expr interface.
 func (expr *FuncExpr) TypeCheck(ctx *SemaContext, desired *types.T) (TypedExpr, error) {
+	if strings.Contains(expr.Func.String(), "width_bucket") {
+		log.Infof(context.TODO(), "TypeCheck on width_bucket")
+	}
 	var searchPath sessiondata.SearchPath
 	if ctx != nil {
 		searchPath = ctx.SearchPath
@@ -846,6 +851,18 @@ func (expr *FuncExpr) TypeCheck(ctx *SemaContext, desired *types.T) (TypedExpr, 
 	}
 
 	typedSubExprs, fns, err := typeCheckOverloadedExprs(ctx, desired, def.Definition, false, expr.Exprs...)
+	// if strings.Contains(expr.Func.String(), "width_bucket") {
+	// 	log.Infof(context.TODO(), "Called typecheckoverloadedexprs on width_bucket")
+	// 	log.Infof(context.TODO(), "desired: %q", desired)
+	// 	log.Infof(context.TODO(), def.Definition)
+	// 	log.Infof(context.TODO(), "typedSubExprs: %q", typedSubExprs)
+	// 	log.Infof(context.TODO(), "fns: %q", fns)
+
+	// 	if strings.Contains(fmt.Sprintf("%q", def.Definition), "bucket") {
+	// 		log.Infof("Got the bucket")
+	// 	}
+	// }
+
 	if err != nil {
 		return nil, pgerror.Wrapf(err, pgcode.InvalidParameterValue,
 			"%s()", def.Name)
